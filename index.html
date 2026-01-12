@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Map Art Maker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Minecraft Map Art Maker</h1>
+    <div class="container">
+        <input type="file" id="imageLoader" name="imageLoader">
+        <canvas id="canvas"></canvas>
+        <div id="settings">
+            <label for="mapSize">Map Size:</label>
+            <select id="mapSize">
+                <option value="1">1x1</option>
+                <option value="2">2x2</option>
+                <option value="3">3x3</option>
+            </select>
+        </div>
+        <button id="generate">Generate Schematic</button>
+        <a id="download" style="display: none;">Download Schematic</a>
+    </div>
+    <script src="js/script.js" type="module"></script>
+</body>
+</html>
