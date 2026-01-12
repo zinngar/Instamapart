@@ -9,16 +9,22 @@ const mapSize = document.getElementById('mapSize');
 let originalImage = null;
 
 imageLoader.addEventListener('change', (e) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-            originalImage = img;
-            updateCanvas();
-        }
-        img.src = event.target.result;
+    const file = e.target.files[0];
+    if (!file) {
+        return;
     }
-    reader.readAsDataURL(e.target.files[0]);
+
+    const img = new Image();
+    img.onload = () => {
+        originalImage = img;
+        updateCanvas();
+        URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => {
+        alert("Failed to load the selected file as an image. Please choose a valid image file.");
+        URL.revokeObjectURL(img.src);
+    };
+    img.src = URL.createObjectURL(file);
 });
 
 mapSize.addEventListener('change', updateCanvas);
