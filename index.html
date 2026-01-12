@@ -9,7 +9,8 @@
 <body>
     <h1>Minecraft Map Art Maker</h1>
     <div class="container">
-        <input type="file" id="imageLoader" name="imageLoader">
+    <input type="file" id="imageLoader" name="imageLoader" accept="image/*" hidden>
+    <button type="button" id="uploadButton" class="button">Upload Image</button>
         <canvas id="canvas"></canvas>
         <div id="settings">
             <label for="mapSize">Map Size:</label>

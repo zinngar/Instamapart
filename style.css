@@ -23,8 +23,9 @@ body {
     margin-top: 1rem;
 }
 
-button {
+.button {
     margin-top: 1rem;
+    margin-bottom: 1rem;
     padding: 0.5rem 1rem;
     border: none;
     background-color: #007bff;

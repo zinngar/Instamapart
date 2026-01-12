@@ -2,7 +2,10 @@ import * as NBT from 'https://cdn.jsdelivr.net/npm/nbtify@2.2.0/dist/index.js';
 import { colorToBlockId } from './color-to-block-id.js';
 
 const imageLoader = document.getElementById('imageLoader');
+const uploadButton = document.getElementById('uploadButton');
 const canvas = document.getElementById('canvas');
+
+uploadButton.addEventListener('click', () => imageLoader.click());
 const ctx = canvas.getContext('2d');
 const mapSize = document.getElementById('mapSize');
 
