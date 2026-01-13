@@ -1,4 +1,4 @@
-import * as NBT from 'https://cdn.jsdelivr.net/npm/nbtify@2.2.0/dist/index.js';
+import * as NBT from 'https://esm.sh/nbtify@2.2.0';
 import { colorToBlockId } from './color-to-block-id.js';
 
 const imageLoader = document.getElementById('imageLoader');
