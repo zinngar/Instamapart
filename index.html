@@ -10,7 +10,7 @@
     <h1>Minecraft Map Art Maker</h1>
     <div class="container">
     <input type="file" id="imageLoader" name="imageLoader" accept="image/*" hidden>
-    <button type="button" id="uploadButton" class="button">Upload Image</button>
+    <label for="imageLoader" id="uploadButton" class="button">Upload Image</label>
         <canvas id="canvas"></canvas>
         <div id="settings">
             <label for="mapSize">Map Size:</label>
@@ -20,7 +20,7 @@
                 <option value="3">3x3</option>
             </select>
         </div>
-        <button id="generate">Generate Schematic</button>
+        <button id="generate" class="button">Generate Schematic</button>
         <a id="download" style="display: none;">Download Schematic</a>
     </div>
     <script src="js/script.js" type="module"></script>
