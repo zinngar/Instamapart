@@ -11,17 +11,48 @@ This web application allows you to create Minecraft map art from any image. You 
 
 ## Running Locally
 
-Because this application uses modern JavaScript modules, you need to run it from a local web server to avoid browser security errors (CORS policy). Opening the `index.html` file directly will not work.
+This application uses modern JavaScript modules (`type="module"`), which are blocked by browser security policies when you open the `index.html` file directly from your computer (i.e., using a `file:///...` path). To make it work, you need to serve the files from a simple local web server.
 
-The easiest way to do this is to use Python's built-in web server.
+Here are a few easy ways to do this:
 
-1.  **Open a terminal or command prompt** in the same directory as the `index.html` file.
-2.  **Run the following command:**
+### Option 1: Using Python (Recommended if you have Python)
+
+Most systems (macOS, Linux, and Windows with the Python installer) have Python. This is often the quickest method.
+
+1.  Open a terminal (like Command Prompt, PowerShell, or Terminal) in the project folder.
+2.  Try running one of the following commands. If one doesn't work, try the next one:
 
     ```bash
-    python -m http.server
+    # For Python 3 (most common)
+    python3 -m http.server
     ```
 
-    If you have Python 2, the command is `python -m SimpleHTTPServer`.
+    ```bash
+    # For Windows, or if the above fails
+    py -m http.server
+    ```
 
-3.  **Open your web browser** and go to the address `http://localhost:8000`. The application should now work correctly.
+    ```bash
+    # For older systems with Python 2
+    python -m SimpleHTTPServer
+    ```
+3.  Once the server is running, open your browser and go to `http://localhost:8000`.
+
+### Option 2: Using Node.js / NPX (Recommended for developers)
+
+If you have Node.js and npm installed, you can use the `serve` package without installing anything permanently.
+
+1.  Open a terminal in the project folder.
+2.  Run the following command:
+    ```bash
+    npx serve
+    ```
+3.  The command will output a local address (usually `http://localhost:3000`). Open that address in your browser.
+
+### Option 3: Using a VS Code Extension (Easiest graphical option)
+
+If you use Visual Studio Code as your editor, the **Live Server** extension is a great one-click solution.
+
+1.  Install the [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) extension from the VS Code Marketplace.
+2.  Open the project folder in VS Code.
+3.  Right-click the `index.html` file and select "Open with Live Server". A browser window will automatically open with the correct local server address.
