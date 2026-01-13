@@ -1,0 +1,8 @@
+{
+    "name": "minecraft-map-art-maker",
+    "version": "1.0.0",
+    "description": "A web application to create Minecraft map art from an image.",
+    "dependencies": {
+        "nbtify": "^2.2.0"
+    }
+}

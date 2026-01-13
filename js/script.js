@@ -112,6 +112,8 @@ async function processImage() {
                 }, {})
             },
             BlockData: { type: 'byteArray', value: new Uint8Array(blockDataBytes) },
+            BlockEntities: { type: 'list', value: { type: 'end', value: [] } },
+            Entities: { type: 'list', value: { type: 'end', value: [] } },
             Metadata: {
                 type: 'compound',
                 value: {
@@ -128,7 +130,7 @@ async function processImage() {
     const downloadUrl = URL.createObjectURL(blob);
     const downloadLink = document.getElementById('download');
     downloadLink.href = downloadUrl;
-    downloadLink.download = 'mapart.schematic';
+    downloadLink.download = 'mapart.schem';
     downloadLink.style.display = 'block';
 }
 
