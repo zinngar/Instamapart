@@ -5,8 +5,28 @@ const imageLoader = document.getElementById('imageLoader');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const mapSize = document.getElementById('mapSize');
+const woolOnly = document.getElementById('woolOnly');
 
 let originalImage = null;
+
+const woolColorToBlockId = {
+    "221,221,221": "minecraft:white_wool",
+    "219,125,62": "minecraft:orange_wool",
+    "179,80,188": "minecraft:magenta_wool",
+    "107,138,201": "minecraft:light_blue_wool",
+    "177,166,39": "minecraft:yellow_wool",
+    "65,174,56": "minecraft:lime_wool",
+    "208,132,153": "minecraft:pink_wool",
+    "64,64,64": "minecraft:gray_wool",
+    "154,161,161": "minecraft:light_gray_wool",
+    "46,114,142": "minecraft:cyan_wool",
+    "126,61,181": "minecraft:purple_wool",
+    "46,56,141": "minecraft:blue_wool",
+    "79,50,31": "minecraft:brown_wool",
+    "53,70,27": "minecraft:green_wool",
+    "150,52,48": "minecraft:red_wool",
+    "25,22,22": "minecraft:black_wool"
+};
 
 imageLoader.addEventListener('change', (e) => {
     const file = e.target.files[0];
@@ -70,13 +90,15 @@ async function processImage() {
     let paletteIndex = 0;
     const blockDataBytes = [];
 
+    const activePalette = woolOnly.checked ? woolColorToBlockId : colorToBlockId;
+
     for (let i = 0; i < data.length; i += 4) {
         const r = data[i];
         const g = data[i + 1];
         const b = data[i + 2];
 
-        const closestColor = findClosestColor(r, g, b);
-        const blockId = colorToBlockId[closestColor];
+        const closestColor = findClosestColor(r, g, b, activePalette);
+        const blockId = activePalette[closestColor];
 
         if (!(blockId in palette)) {
             palette[blockId] = paletteIndex++;
@@ -144,11 +166,11 @@ function writeVarInt(value) {
     return bytes;
 }
 
-function findClosestColor(r, g, b) {
+function findClosestColor(r, g, b, palette) {
     let closestColor = null;
     let minDistance = Infinity;
 
-    for (const color of Object.keys(colorToBlockId)) {
+    for (const color of Object.keys(palette)) {
         const [mcR, mcG, mcB] = color.split(',').map(Number);
         const distance = Math.sqrt(
             Math.pow(r - mcR, 2) +

@@ -23,6 +23,16 @@ body {
     margin-top: 1rem;
 }
 
+.wool-option {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.wool-option label {
+    margin-left: 0.5rem;
+}
+
 .button {
     display: inline-block;
     margin-top: 1rem;
