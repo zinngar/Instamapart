@@ -66,9 +66,9 @@ async function processImage() {
 
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
-    const blockIds = [];
     const palette = {};
     let paletteIndex = 0;
+    const blockDataBytes = [];
 
     for (let i = 0; i < data.length; i += 4) {
         const r = data[i];
@@ -78,10 +78,11 @@ async function processImage() {
         const closestColor = findClosestColor(r, g, b);
         const blockId = colorToBlockId[closestColor];
 
-        if (!palette[blockId]) {
+        if (!(blockId in palette)) {
             palette[blockId] = paletteIndex++;
         }
-        blockIds.push(palette[blockId]);
+        const paletteId = palette[blockId];
+        blockDataBytes.push(...writeVarInt(paletteId));
 
         const [newR, newG, newB] = closestColor.split(',').map(Number);
         data[i] = newR;
@@ -97,10 +98,12 @@ async function processImage() {
     const schematic = {
         name: 'Schematic',
         value: {
+            Version: { type: 'int', value: 2 },
             DataVersion: { type: 'int', value: 2730 },
             Width: { type: 'short', value: width },
             Height: { type: 'short', value: 1 },
             Length: { type: 'short', value: height },
+            PaletteMax: { type: 'int', value: paletteIndex },
             Palette: {
                 type: 'compound',
                 value: Object.entries(palette).reduce((acc, [name, val]) => {
@@ -108,7 +111,7 @@ async function processImage() {
                     return acc;
                 }, {})
             },
-            BlockData: { type: 'byteArray', value: new Uint8Array(blockIds) },
+            BlockData: { type: 'byteArray', value: new Uint8Array(blockDataBytes) },
             Metadata: {
                 type: 'compound',
                 value: {
@@ -127,6 +130,16 @@ async function processImage() {
     downloadLink.href = downloadUrl;
     downloadLink.download = 'mapart.schematic';
     downloadLink.style.display = 'block';
+}
+
+function writeVarInt(value) {
+    const bytes = [];
+    while (value & 0xFFFFFF80) {
+        bytes.push((value & 0x7F) | 0x80);
+        value >>>= 7;
+    }
+    bytes.push(value & 0x7F);
+    return bytes;
 }
 
 function findClosestColor(r, g, b) {
