@@ -143,11 +143,12 @@ async function processImage() {
                     WEOffsetY: { type: 'int', value: 0 },
                     WEOffsetZ: { type: 'int', value: 0 }
                 }
-            }
+            },
+            Offset: { type: 'intArray', value: [0, 0, 0] }
         }
     };
 
-    const nbtData = NBT.write(schematic, { compressed: true });
+    const nbtData = NBT.write(schematic, { compressed: false });
     const blob = new Blob([nbtData], { type: 'application/octet-stream' });
     const downloadUrl = URL.createObjectURL(blob);
     const downloadLink = document.getElementById('download');
