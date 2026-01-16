@@ -5,7 +5,7 @@ const imageLoader = document.getElementById('imageLoader');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const mapSize = document.getElementById('mapSize');
-const woolOnly = document.getElementById('woolOnly');
+const blockPalette = document.getElementById('blockPalette');
 
 let originalImage = null;
 
@@ -27,6 +27,24 @@ const woolColorToBlockId = {
     "150,52,48": "minecraft:red_wool",
     "25,22,22": "minecraft:black_wool"
 };
+
+const concreteColorToBlockId = Object.fromEntries(
+    Object.entries(colorToBlockId).filter(([, blockId]) => blockId.includes('concrete'))
+);
+
+const expensiveBlocks = [
+    "minecraft:diamond_block",
+    "minecraft:gold_block",
+    "minecraft:emerald_block",
+    "minecraft:lapis_block",
+    "minecraft:iron_block",
+    "minecraft:redstone_block",
+    "minecraft:raw_iron_block"
+];
+
+const noExpensiveColorToBlockId = Object.fromEntries(
+    Object.entries(colorToBlockId).filter(([, blockId]) => !expensiveBlocks.includes(blockId))
+);
 
 imageLoader.addEventListener('change', (e) => {
     const file = e.target.files[0];
@@ -90,7 +108,20 @@ async function processImage() {
     let paletteIndex = 0;
     const blockDataBytes = [];
 
-    const activePalette = woolOnly.checked ? woolColorToBlockId : colorToBlockId;
+    let activePalette;
+    switch (blockPalette.value) {
+        case 'wool':
+            activePalette = woolColorToBlockId;
+            break;
+        case 'concrete':
+            activePalette = concreteColorToBlockId;
+            break;
+        case 'no_expensive':
+            activePalette = noExpensiveColorToBlockId;
+            break;
+        default:
+            activePalette = colorToBlockId;
+    }
 
     for (let i = 0; i < data.length; i += 4) {
         const r = data[i];

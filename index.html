@@ -19,9 +19,14 @@
                 <option value="2">2x2</option>
                 <option value="3">3x3</option>
             </select>
-            <div class="wool-option">
-                <input type="checkbox" id="woolOnly" name="woolOnly">
-                <label for="woolOnly">Wool Only</label>
+            <div class="palette-option">
+                <label for="blockPalette">Block Palette:</label>
+                <select id="blockPalette">
+                    <option value="all">All Blocks</option>
+                    <option value="wool">Wool Only</option>
+                    <option value="concrete">Concrete Only</option>
+                    <option value="no_expensive">No Expensive Blocks</option>
+                </select>
             </div>
         </div>
         <button id="generate" class="button">Generate Schematic</button>
