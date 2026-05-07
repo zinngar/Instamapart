@@ -1,7 +1,7 @@
 {
     "name": "minecraft-map-art-maker",
     "version": "1.0.0",
-    "description": "A web application to create Minecraft map art from an image.",
+    "description": "A web application to create Minecraft map art from an image. Hosted on GitHub: https://github.com/zinngar/Instamapart",
     "dependencies": {
         "nbtify": "^2.2.0"
     }
