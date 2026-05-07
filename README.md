@@ -6,6 +6,15 @@ This web application allows you to create Minecraft map art from any image. You 
 
 **Hosted on GitHub:** [zinngar/Instamapart](https://github.com/zinngar/Instamapart)
 
+## GitHub Pages Deployment
+
+To deploy this application to GitHub Pages, follow these steps:
+
+1.  Go to your repository settings on GitHub.
+2.  Navigate to **Pages** in the sidebar.
+3.  Under **Build and deployment > Source**, select **GitHub Actions**.
+4.  Push any changes to the `main` branch, and the site will be automatically deployed.
+
 ## How to Use
 
 1.  **Upload an Image:** Click the "Choose File" button to select an image from your computer. The application will display a preview of the image.
