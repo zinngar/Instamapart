@@ -1,6 +1,10 @@
 # Minecraft Map Art Maker
 
-This web application allows you to create Minecraft map art from any image. You can upload an image, select the desired map size, and the application will generate a `.schematic` file that you can use in Minecraft with tools like WorldEdit or Litematica. Hosted on GitHub: [zinngar/Instamapart](https://github.com/zinngar/Instamapart)
+This web application allows you to create Minecraft map art from any image. You can upload an image, select the desired map size, and the application will generate a `.schematic` file that you can use in Minecraft with tools like WorldEdit or Litematica.
+
+**Live Demo:** [https://zinngar.github.io/Instamapart/](https://zinngar.github.io/Instamapart/)
+
+**Hosted on GitHub:** [zinngar/Instamapart](https://github.com/zinngar/Instamapart)
 
 ## How to Use
 
