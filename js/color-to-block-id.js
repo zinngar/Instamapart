@@ -44,7 +44,7 @@ export const colorToBlockId = {
     "220,217,211": "minecraft:quartz_block",
     "18,108,115": "minecraft:waxed_oxidized_copper",
     "0,106,0": "minecraft:azalea_leaves",
-    "125,162,75": "minecraft:grass",
+    "125,162,75": "minecraft:grass_block",
     "55,79,21": "minecraft:oak_leaves",
     "59,77,39": "minecraft:birch_leaves",
     "45,71,45": "minecraft:spruce_leaves",
@@ -60,7 +60,7 @@ export const colorToBlockId = {
     "0,187,50": "minecraft:emerald_block",
     "64,110,220": "minecraft:lapis_block",
     "186,150,126": "minecraft:raw_iron_block",
-    "109,153,48": "minecraft:slime",
+    "109,153,48": "minecraft:slime_block",
     "171,171,171": "minecraft:mushroom_stem",
     "138,138,220": "minecraft:blue_ice",
     "11,15,19": "minecraft:sculk"

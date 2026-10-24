@@ -42,3 +42,80 @@ a {
     margin-top: 1rem;
     text-align: center;
 }
+
+.tagline {
+    margin-top: -0.5rem;
+    color: #555;
+}
+
+.container {
+    max-width: 900px;
+}
+
+.previews {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.previews figure {
+    margin: 0;
+    text-align: center;
+    color: #555;
+    font-size: 0.85rem;
+}
+
+#canvas {
+    max-width: 384px;
+    max-height: 384px;
+    image-rendering: pixelated;
+    background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0 0 / 16px 16px;
+}
+
+#preview3d {
+    max-width: 100%;
+    border-radius: 5px;
+    cursor: grab;
+    touch-action: none;
+}
+
+fieldset {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 0.75rem;
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    align-items: center;
+}
+
+.row input[type="number"] {
+    width: 5rem;
+}
+
+.slider {
+    display: grid;
+    grid-template-columns: 6rem 1fr 4rem auto;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+#stats {
+    color: #333;
+}
+
+#materials {
+    columns: 2;
+    font-size: 0.9rem;
+}
+
+a.button {
+    color: white;
+    text-decoration: none;
+}

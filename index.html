@@ -3,24 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="A web application to create Minecraft map art from any image. Live demo: https://zinngar.github.io/Instamapart/. Hosted on GitHub: https://github.com/zinngar/Instamapart">
-    <title>Minecraft Map Art Maker</title>
+    <meta name="description" content="Turn any image into a Litematica schematic for Minecraft, at any size and any angle. Live demo: https://zinngar.github.io/Instamapart/. Hosted on GitHub: https://github.com/zinngar/Instamapart">
+    <title>Instamapart</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Minecraft Map Art Maker</h1>
+    <h1>Instamapart</h1>
+    <p class="tagline">Image → Litematica schematic, at any size and any angle</p>
     <div class="container">
-    <input type="file" id="imageLoader" name="imageLoader" accept="image/*" hidden>
-    <label for="imageLoader" id="uploadButton" class="button">Upload Image</label>
-        <canvas id="canvas"></canvas>
+        <input type="file" id="imageLoader" name="imageLoader" accept="image/*" hidden>
+        <label for="imageLoader" id="uploadButton" class="button">Upload Image</label>
+
+        <div class="previews">
+            <figure>
+                <canvas id="canvas"></canvas>
+                <figcaption>Picture in blocks</figcaption>
+            </figure>
+            <figure>
+                <canvas id="preview3d" width="420" height="420"></canvas>
+                <figcaption>3D preview (drag to look around)</figcaption>
+            </figure>
+        </div>
+
         <div id="settings">
-            <label for="mapSize">Map Size:</label>
-            <select id="mapSize">
-                <option value="1">1x1</option>
-                <option value="2">2x2</option>
-                <option value="3">3x3</option>
-            </select>
-            <div class="palette-option">
+            <fieldset>
+                <legend>Size</legend>
+                <label for="sizePreset">Preset:</label>
+                <select id="sizePreset">
+                    <option value="1">1x1 map (128)</option>
+                    <option value="2">2x2 maps (256)</option>
+                    <option value="3">3x3 maps (384)</option>
+                    <option value="4">4x4 maps (512)</option>
+                    <option value="custom">Custom</option>
+                </select>
+                <div class="row">
+                    <label>Width <input type="number" id="width" min="1" max="512" value="128"></label>
+                    <label>Height <input type="number" id="height" min="1" max="512" value="128"></label>
+                    <label><input type="checkbox" id="lockAspect" checked> Keep image shape</label>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Blocks</legend>
                 <label for="blockPalette">Block Palette:</label>
                 <select id="blockPalette">
                     <option value="all">All Blocks</option>
@@ -28,10 +52,47 @@
                     <option value="concrete">Concrete Only</option>
                     <option value="no_expensive">No Expensive Blocks</option>
                 </select>
-            </div>
+                <label class="row"><input type="checkbox" id="transparent" checked> Transparent pixels become air</label>
+            </fieldset>
+
+            <fieldset>
+                <legend>Angle</legend>
+                <label for="orientation">Orientation:</label>
+                <select id="orientation">
+                    <option value="flat">Flat on the ground (map art)</option>
+                    <option value="south" selected>Upright, facing south</option>
+                    <option value="west">Upright, facing west</option>
+                    <option value="north">Upright, facing north</option>
+                    <option value="east">Upright, facing east</option>
+                    <option value="ceiling">On the ceiling (facing down)</option>
+                    <option value="custom">Custom angle</option>
+                </select>
+                <div class="slider">
+                    <label for="tilt">Tilt back</label>
+                    <input type="range" id="tilt" min="-180" max="180" value="0">
+                    <input type="number" id="tiltValue" min="-180" max="180" value="0">°
+                </div>
+                <div class="slider">
+                    <label for="turn">Turn</label>
+                    <input type="range" id="turn" min="-180" max="180" value="0">
+                    <input type="number" id="turnValue" min="-180" max="180" value="0">°
+                </div>
+                <div class="slider">
+                    <label for="spin">Spin</label>
+                    <input type="range" id="spin" min="-180" max="180" value="0">
+                    <input type="number" id="spinValue" min="-180" max="180" value="0">°
+                </div>
+                <label class="row"><input type="checkbox" id="solid"> Fill gaps on angled pictures (uses more blocks)</label>
+            </fieldset>
         </div>
-        <button id="generate" class="button">Generate Schematic</button>
-        <a id="download" style="display: none;">Download Schematic</a>
+
+        <p id="stats"></p>
+        <button id="generate" class="button">Generate Litematic</button>
+        <a id="download" class="button" style="display: none;">Download .litematic</a>
+        <details id="materialsBox" style="display: none;">
+            <summary>Materials list</summary>
+            <ul id="materials"></ul>
+        </details>
     </div>
     <footer style="margin-top: 2rem; text-align: center;">
         <p>Source code available on <a href="https://github.com/zinngar/Instamapart">GitHub</a></p>

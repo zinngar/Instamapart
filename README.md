@@ -1,6 +1,6 @@
-# Minecraft Map Art Maker
+# Instamapart
 
-This web application allows you to create Minecraft map art from any image. You can upload an image, select the desired map size, and the application will generate a `.schematic` file that you can use in Minecraft with tools like WorldEdit or Litematica.
+Turn any image into a [Litematica](https://www.curseforge.com/minecraft/mc-mods/litematica) schematic (`.litematic`). Build it flat on the ground as map art, stand it upright as a wall, or put it at any angle in 3D space, at whatever size you want.
 
 **Live Demo:** [https://zinngar.github.io/Instamapart/](https://zinngar.github.io/Instamapart/)
 
@@ -8,10 +8,15 @@ This web application allows you to create Minecraft map art from any image. You 
 
 ## How to Use
 
-1.  **Upload an Image:** Click the "Choose File" button to select an image from your computer. The application will display a preview of the image.
-2.  **Select Map Size:** Choose the desired size for your map art from the "Map Size" dropdown. The options are 1x1, 2x2, and 3x3 maps. The application will resize the image to fit the selected size while maintaining its aspect ratio.
-3.  **Generate Schematic:** Click the "Generate Schematic" button to process the image and create the `.schematic` file.
-4.  **Download Schematic:** A "Download Schematic" link will appear. Click it to save the `.schematic` file to your computer.
+1.  **Upload an Image.** You'll see a preview of the picture in blocks and a 3D preview you can drag to look around.
+2.  **Pick a Size.** Use a map preset (1x1 to 4x4 maps) or type any width and height in blocks, up to 512. Leave "Keep image shape" checked to keep the image's proportions.
+3.  **Pick Blocks.** Choose a block palette. Transparent pixels become air, which is handy for cut-out shapes.
+4.  **Pick an Angle.** Choose a preset (flat, upright facing any direction, ceiling) or set your own angle:
+    - **Tilt back**: leans the top of the picture away from you. 90° is lying flat with the top pointing north.
+    - **Turn**: rotates around the vertical axis, like Minecraft yaw (90° = facing west).
+    - **Spin**: rotates the picture within its own plane.
+    - **Fill gaps** makes angled pictures thicker so you can't see through them, at the cost of more blocks.
+5.  **Generate Litematic**, then download it. Put the file in `.minecraft/schematics` and load it with Litematica. A materials list is shown under the button.
 
 ## Running Locally
 

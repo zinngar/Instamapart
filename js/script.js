@@ -1,13 +1,30 @@
-import * as NBT from 'https://esm.sh/nbtify@2.2.0';
 import { colorToBlockId } from './color-to-block-id.js';
+import { voxelize, rotationMatrix } from './voxelize.js';
+import { buildLitematic } from './litematic.js';
 
-const imageLoader = document.getElementById('imageLoader');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const mapSize = document.getElementById('mapSize');
-const blockPalette = document.getElementById('blockPalette');
+const $ = (id) => document.getElementById(id);
+const imageLoader = $('imageLoader');
+const canvas = $('canvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+const preview = $('preview3d');
+const previewCtx = preview.getContext('2d');
+const sizePreset = $('sizePreset');
+const widthInput = $('width');
+const heightInput = $('height');
+const lockAspect = $('lockAspect');
+const blockPalette = $('blockPalette');
+const transparent = $('transparent');
+const orientation = $('orientation');
+const solid = $('solid');
+const stats = $('stats');
+const downloadLink = $('download');
+
+const MAX_SIZE = 512;
 
 let originalImage = null;
+let imageName = 'mapart';
+// Result of the latest preview: palette + 3D shape, reused by Generate.
+let current = null;
 
 const woolColorToBlockId = {
     "221,221,221": "minecraft:white_wool",
@@ -46,6 +63,41 @@ const noExpensiveColorToBlockId = Object.fromEntries(
     Object.entries(colorToBlockId).filter(([, blockId]) => !expensiveBlocks.includes(blockId))
 );
 
+// tilt: lean the top back (90 = flat, top pointing north)
+// turn: around the vertical axis, same as Minecraft yaw (90 = facing west)
+// spin: rotate the picture within its own plane
+const orientations = {
+    flat: { tilt: 90, turn: 0, spin: 0 },
+    south: { tilt: 0, turn: 0, spin: 0 },
+    west: { tilt: 0, turn: 90, spin: 0 },
+    north: { tilt: 0, turn: 180, spin: 0 },
+    east: { tilt: 0, turn: -90, spin: 0 },
+    ceiling: { tilt: -90, turn: 0, spin: 0 }
+};
+const angleNames = ['tilt', 'turn', 'spin'];
+
+function getAngles() {
+    return Object.fromEntries(angleNames.map((n) => [n, Number($(n).value)]));
+}
+
+function setAngles(angles) {
+    for (const n of angleNames) {
+        $(n).value = angles[n];
+        $(`${n}Value`).value = angles[n];
+    }
+}
+
+function activePalette() {
+    switch (blockPalette.value) {
+        case 'wool': return woolColorToBlockId;
+        case 'concrete': return concreteColorToBlockId;
+        case 'no_expensive': return noExpensiveColorToBlockId;
+        default: return colorToBlockId;
+    }
+}
+
+// --- Inputs -----------------------------------------------------------------
+
 imageLoader.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) {
@@ -55,7 +107,8 @@ imageLoader.addEventListener('change', (e) => {
     const img = new Image();
     img.onload = () => {
         originalImage = img;
-        updateCanvas();
+        imageName = file.name.replace(/\.[^.]+$/, '').replace(/[^\w-]+/g, '_') || 'mapart';
+        applySizePreset();
         URL.revokeObjectURL(img.src);
     };
     img.onerror = () => {
@@ -65,156 +118,280 @@ imageLoader.addEventListener('change', (e) => {
     img.src = URL.createObjectURL(file);
 });
 
-mapSize.addEventListener('change', updateCanvas);
+const clampSize = (v) => Math.max(1, Math.min(MAX_SIZE, Math.round(v) || 1));
+const aspect = () => originalImage ? originalImage.width / originalImage.height : 1;
 
-function updateCanvas() {
-    if (!originalImage) {
-        return;
+function applySizePreset() {
+    if (sizePreset.value !== 'custom') {
+        const side = 128 * Number(sizePreset.value);
+        // Fit the longer side of the image to the map size.
+        if (lockAspect.checked && aspect() < 1) {
+            heightInput.value = side;
+            widthInput.value = clampSize(side * aspect());
+        } else {
+            widthInput.value = side;
+            heightInput.value = lockAspect.checked ? clampSize(side / aspect()) : side;
+        }
     }
-
-    const size = parseInt(mapSize.value);
-    const newWidth = 128 * size;
-    const newHeight = 128 * size;
-
-    const aspectRatio = originalImage.width / originalImage.height;
-    let drawWidth = newWidth;
-    let drawHeight = newHeight;
-
-    if (aspectRatio > 1) {
-        drawHeight = newWidth / aspectRatio;
-    } else {
-        drawWidth = newHeight * aspectRatio;
-    }
-
-    canvas.width = newWidth;
-    canvas.height = newHeight;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(originalImage, 0, 0, drawWidth, drawHeight);
+    schedulePreview();
 }
 
-const generateButton = document.getElementById('generate');
-generateButton.addEventListener('click', processImage);
+sizePreset.addEventListener('change', applySizePreset);
+lockAspect.addEventListener('change', () => {
+    if (lockAspect.checked) heightInput.value = clampSize(Number(widthInput.value) / aspect());
+    schedulePreview();
+});
+widthInput.addEventListener('input', () => {
+    sizePreset.value = 'custom';
+    if (lockAspect.checked) heightInput.value = clampSize(Number(widthInput.value) / aspect());
+    schedulePreview();
+});
+heightInput.addEventListener('input', () => {
+    sizePreset.value = 'custom';
+    if (lockAspect.checked) widthInput.value = clampSize(Number(heightInput.value) * aspect());
+    schedulePreview();
+});
 
-async function processImage() {
+orientation.addEventListener('change', () => {
+    if (orientations[orientation.value]) setAngles(orientations[orientation.value]);
+    schedulePreview();
+});
+
+for (const n of angleNames) {
+    const slider = $(n);
+    const number = $(`${n}Value`);
+    slider.addEventListener('input', () => {
+        number.value = slider.value;
+        orientation.value = 'custom';
+        schedulePreview();
+    });
+    number.addEventListener('input', () => {
+        slider.value = number.value;
+        orientation.value = 'custom';
+        schedulePreview();
+    });
+}
+
+for (const el of [blockPalette, transparent, solid]) {
+    el.addEventListener('change', schedulePreview);
+}
+
+// --- Image → blocks ---------------------------------------------------------
+
+let previewTimer = null;
+function schedulePreview() {
+    downloadLink.style.display = 'none';
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(updatePreview, 60);
+}
+
+function updatePreview() {
     if (!originalImage) {
         return;
     }
 
-    updateCanvas();
+    const width = clampSize(Number(widthInput.value));
+    const height = clampSize(Number(heightInput.value));
+    canvas.width = width;
+    canvas.height = height;
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(originalImage, 0, 0, width, height);
 
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, width, height);
     const data = imageData.data;
-    const palette = {};
-    let paletteIndex = 0;
-    const blockDataBytes = [];
+    const paletteMap = activePalette();
+    const colors = Object.keys(paletteMap).map((c) => c.split(',').map(Number));
+    const blockNames = [];
+    const blockColors = [];
+    const indexOfColor = new Map();
+    const nearestCache = new Map();
+    const pixels = new Int32Array(width * height);
 
-    let activePalette;
-    switch (blockPalette.value) {
-        case 'wool':
-            activePalette = woolColorToBlockId;
-            break;
-        case 'concrete':
-            activePalette = concreteColorToBlockId;
-            break;
-        case 'no_expensive':
-            activePalette = noExpensiveColorToBlockId;
-            break;
-        default:
-            activePalette = colorToBlockId;
-    }
-
-    for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-
-        const closestColor = findClosestColor(r, g, b, activePalette);
-        const blockId = activePalette[closestColor];
-
-        if (!(blockId in palette)) {
-            palette[blockId] = paletteIndex++;
+    for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+        if (transparent.checked && data[i + 3] < 128) {
+            pixels[p] = -1;
+            data[i + 3] = 0;
+            continue;
         }
-        const paletteId = palette[blockId];
-        blockDataBytes.push(...writeVarInt(paletteId));
-
-        const [newR, newG, newB] = closestColor.split(',').map(Number);
-        data[i] = newR;
-        data[i + 1] = newG;
-        data[i + 2] = newB;
+        const key = (data[i] << 16) | (data[i + 1] << 8) | data[i + 2];
+        let c = nearestCache.get(key);
+        if (c === undefined) {
+            c = findClosestColor(data[i], data[i + 1], data[i + 2], colors);
+            nearestCache.set(key, c);
+        }
+        let idx = indexOfColor.get(c);
+        if (idx === undefined) {
+            idx = blockNames.length;
+            indexOfColor.set(c, idx);
+            blockNames.push(paletteMap[colors[c].join(',')]);
+            blockColors.push(colors[c]);
+        }
+        pixels[p] = idx;
+        [data[i], data[i + 1], data[i + 2]] = colors[c];
+        data[i + 3] = 255;
     }
-
     ctx.putImageData(imageData, 0, 0);
 
-    const width = canvas.width;
-    const height = canvas.height;
+    const shape = voxelize(width, height, (x, y) => pixels[y * width + x], getAngles(), solid.checked);
+    current = { shape, blockNames, blockColors };
 
-    const schematic = {
-        name: 'Schematic',
-        value: {
-            Version: { type: 'int', value: 2 },
-            DataVersion: { type: 'int', value: 2730 },
-            Width: { type: 'short', value: width },
-            Height: { type: 'short', value: 1 },
-            Length: { type: 'short', value: height },
-            PaletteMax: { type: 'int', value: paletteIndex },
-            Palette: {
-                type: 'compound',
-                value: Object.entries(palette).reduce((acc, [name, val]) => {
-                    acc[name] = { type: 'int', value: val };
-                    return acc;
-                }, {})
-            },
-            BlockData: { type: 'byteArray', value: new Uint8Array(blockDataBytes) },
-            BlockEntities: { type: 'list', value: { type: 'end', value: [] } },
-            Entities: { type: 'list', value: { type: 'end', value: [] } },
-            Metadata: {
-                type: 'compound',
-                value: {
-                    WEOffsetX: { type: 'int', value: 0 },
-                    WEOffsetY: { type: 'int', value: 0 },
-                    WEOffsetZ: { type: 'int', value: 0 }
-                }
-            },
-            Offset: { type: 'intArray', value: [0, 0, 0] }
-        }
-    };
-
-    const nbtData = NBT.write(schematic, { compressed: false });
-    const blob = new Blob([nbtData], { type: 'application/octet-stream' });
-    const downloadUrl = URL.createObjectURL(blob);
-    const downloadLink = document.getElementById('download');
-    downloadLink.href = downloadUrl;
-    downloadLink.download = 'mapart.schem';
-    downloadLink.style.display = 'block';
+    const count = shape.hits.length / 4;
+    stats.textContent = count
+        ? `${shape.sizeX} × ${shape.sizeY} × ${shape.sizeZ} (W × H × L) · ${count.toLocaleString()} blocks · ${blockNames.length} block types`
+        : 'Nothing to build — the picture is fully transparent.';
+    renderMaterials();
+    render3d();
 }
 
-function writeVarInt(value) {
-    const bytes = [];
-    while (value & 0xFFFFFF80) {
-        bytes.push((value & 0x7F) | 0x80);
-        value >>>= 7;
-    }
-    bytes.push(value & 0x7F);
-    return bytes;
-}
-
-function findClosestColor(r, g, b, palette) {
-    let closestColor = null;
+function findClosestColor(r, g, b, colors) {
+    let best = 0;
     let minDistance = Infinity;
-
-    for (const color of Object.keys(palette)) {
-        const [mcR, mcG, mcB] = color.split(',').map(Number);
-        const distance = Math.sqrt(
-            Math.pow(r - mcR, 2) +
-            Math.pow(g - mcG, 2) +
-            Math.pow(b - mcB, 2)
-        );
-
+    for (let i = 0; i < colors.length; i++) {
+        const [mcR, mcG, mcB] = colors[i];
+        const distance = (r - mcR) ** 2 + (g - mcG) ** 2 + (b - mcB) ** 2;
         if (distance < minDistance) {
             minDistance = distance;
-            closestColor = color;
+            best = i;
         }
     }
-
-    return closestColor;
+    return best;
 }
+
+function renderMaterials() {
+    const { shape, blockNames } = current;
+    const counts = new Array(blockNames.length).fill(0);
+    for (let i = 3; i < shape.hits.length; i += 4) counts[shape.hits[i]]++;
+    const list = $('materials');
+    list.innerHTML = '';
+    blockNames
+        .map((name, i) => [name, counts[i]])
+        .filter(([, n]) => n > 0)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([name, n]) => {
+            const li = document.createElement('li');
+            const stacks = Math.floor(n / 64);
+            const rest = n % 64;
+            li.textContent = `${name.replace('minecraft:', '')}: ${n.toLocaleString()}` +
+                (stacks ? ` (${stacks} stack${stacks > 1 ? 's' : ''}${rest ? ` + ${rest}` : ''})` : '');
+            list.appendChild(li);
+        });
+    $('materialsBox').style.display = shape.hits.length ? 'block' : 'none';
+}
+
+// --- 3D preview ---------------------------------------------------------------
+
+// Camera looks from the south-east, slightly above, like a player would.
+const view = { yaw: -35, pitch: 25 };
+
+function render3d() {
+    const W = preview.width;
+    const H = preview.height;
+    const img = previewCtx.createImageData(W, H);
+    const px = img.data;
+    // Background
+    for (let i = 0; i < px.length; i += 4) {
+        px[i] = 30; px[i + 1] = 34; px[i + 2] = 42; px[i + 3] = 255;
+    }
+
+    if (current && current.shape.hits.length) {
+        const { shape, blockColors } = current;
+        const { sizeX, sizeY, sizeZ, hits } = shape;
+        // Camera rotation: yaw around Y, then pitch around X.
+        const cy = Math.cos(view.yaw * Math.PI / 180), sy = Math.sin(view.yaw * Math.PI / 180);
+        const cp = Math.cos(view.pitch * Math.PI / 180), sp = Math.sin(view.pitch * Math.PI / 180);
+        const radius = Math.hypot(sizeX, sizeY, sizeZ) / 2 || 1;
+        const scale = (Math.min(W, H) * 0.46) / radius;
+        const half = Math.max(1, Math.ceil(scale * 0.55));
+        const depth = new Float32Array(W * H).fill(Infinity);
+        // Light from above and the camera side so the faces of angled pictures read clearly.
+        const m = rotationMatrix(getAngles());
+        const n = [m[2], m[5], m[8]];
+        const shade = 0.6 + 0.4 * Math.abs(n[1] * 0.8 + (n[0] * sy + n[2] * cy) * 0.6);
+
+        for (let i = 0; i < hits.length; i += 4) {
+            const x = hits[i] - sizeX / 2 + 0.5;
+            const y = hits[i + 1] - sizeY / 2 + 0.5;
+            const z = hits[i + 2] - sizeZ / 2 + 0.5;
+            // yaw
+            const x1 = x * cy - z * sy;
+            const z1 = x * sy + z * cy;
+            // pitch
+            const y2 = y * cp - z1 * sp;
+            const z2 = y * sp + z1 * cp;
+            const sx = Math.round(W / 2 + x1 * scale);
+            const syy = Math.round(H / 2 - y2 * scale);
+            const d = -z2;
+            const [r, g, b] = blockColors[hits[i + 3]];
+            for (let py = syy - half; py < syy + half; py++) {
+                if (py < 0 || py >= H) continue;
+                for (let qx = sx - half; qx < sx + half; qx++) {
+                    if (qx < 0 || qx >= W) continue;
+                    const k = py * W + qx;
+                    if (d >= depth[k]) continue;
+                    depth[k] = d;
+                    px[k * 4] = r * shade;
+                    px[k * 4 + 1] = g * shade;
+                    px[k * 4 + 2] = b * shade;
+                }
+            }
+        }
+    }
+    previewCtx.putImageData(img, 0, 0);
+    drawCompass();
+}
+
+function drawCompass() {
+    const cy = Math.cos(view.yaw * Math.PI / 180), sy = Math.sin(view.yaw * Math.PI / 180);
+    const sp = Math.max(0.6, Math.abs(Math.sin(view.pitch * Math.PI / 180)));
+    const cx0 = 36, cy0 = preview.height - 36, r = 22;
+    previewCtx.font = 'bold 11px sans-serif';
+    previewCtx.textAlign = 'center';
+    previewCtx.textBaseline = 'middle';
+    for (const [label, x, z] of [['N', 0, -1], ['S', 0, 1], ['E', 1, 0], ['W', -1, 0]]) {
+        const x1 = x * cy - z * sy;
+        const z1 = x * sy + z * cy;
+        previewCtx.fillStyle = label === 'N' ? '#ff6b6b' : '#cfd6e0';
+        previewCtx.fillText(label, cx0 + x1 * r, cy0 + z1 * sp * r);
+    }
+}
+
+let drag = null;
+preview.addEventListener('pointerdown', (e) => {
+    drag = { x: e.clientX, y: e.clientY, yaw: view.yaw, pitch: view.pitch };
+    preview.setPointerCapture(e.pointerId);
+});
+preview.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    view.yaw = drag.yaw + (e.clientX - drag.x) * 0.5;
+    view.pitch = Math.max(-89, Math.min(89, drag.pitch + (e.clientY - drag.y) * 0.5));
+    render3d();
+});
+preview.addEventListener('pointerup', () => { drag = null; });
+
+// --- Export -------------------------------------------------------------------
+
+$('generate').addEventListener('click', async () => {
+    if (!originalImage) {
+        alert('Upload an image first.');
+        return;
+    }
+    clearTimeout(previewTimer);
+    updatePreview();
+    if (!current.shape.hits.length) {
+        return;
+    }
+
+    const { shape, blockNames } = current;
+    const angles = getAngles();
+    const bytes = await buildLitematic(shape, blockNames, {
+        name: imageName,
+        description: `Made with Instamapart. Tilt ${angles.tilt}°, turn ${angles.turn}°, spin ${angles.spin}°.`
+    });
+    const blob = new Blob([bytes], { type: 'application/octet-stream' });
+    if (downloadLink.href) URL.revokeObjectURL(downloadLink.href);
+    downloadLink.href = URL.createObjectURL(blob);
+    downloadLink.download = `${imageName}.litematic`;
+    downloadLink.style.display = 'inline-block';
+});
+
+render3d();
