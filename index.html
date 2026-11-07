@@ -51,7 +51,16 @@
                     <option value="wool">Wool Only</option>
                     <option value="concrete">Concrete Only</option>
                     <option value="no_expensive">No Expensive Blocks</option>
+                    <option value="custom">Custom (my picks)</option>
                 </select>
+                <details id="blockPicker">
+                    <summary>Choose which blocks to use (<span id="enabledCount"></span>)</summary>
+                    <div class="row">
+                        <button type="button" id="enableAll" class="small">All on</button>
+                        <button type="button" id="enableNone" class="small">All off</button>
+                    </div>
+                    <div id="blockGrid"></div>
+                </details>
                 <label class="row"><input type="checkbox" id="transparent" checked> Transparent pixels become air</label>
             </fieldset>
 
@@ -87,12 +96,15 @@
         </div>
 
         <p id="stats"></p>
+        <details id="materialsBox" style="display: none;" open>
+            <summary>Blocks in this schematic</summary>
+            <p class="hint">Swap a block using a closest-colour button, the list (closest colours come first) or by typing any block name, like <code>smooth_stone</code>. Clear the box to undo. "Don't use" takes it out and rematches those pixels to your other blocks.</p>
+            <div id="materials"></div>
+            <datalist id="blockOptions"></datalist>
+            <button type="button" id="clearSwaps" class="small">Undo all swaps</button>
+        </details>
         <button id="generate" class="button">Generate Litematic</button>
         <a id="download" class="button" style="display: none;">Download .litematic</a>
-        <details id="materialsBox" style="display: none;">
-            <summary>Materials list</summary>
-            <ul id="materials"></ul>
-        </details>
     </div>
     <footer style="margin-top: 2rem; text-align: center;">
         <p>Source code available on <a href="https://github.com/zinngar/Instamapart">GitHub</a></p>

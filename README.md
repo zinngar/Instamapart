@@ -10,13 +10,14 @@ Turn any image into a [Litematica](https://www.curseforge.com/minecraft/mc-mods/
 
 1.  **Upload an Image.** You'll see a preview of the picture in blocks and a 3D preview you can drag to look around.
 2.  **Pick a Size.** Use a map preset (1x1 to 4x4 maps) or type any width and height in blocks, up to 512. Leave "Keep image shape" checked to keep the image's proportions.
-3.  **Pick Blocks.** Choose a block palette. Transparent pixels become air, which is handy for cut-out shapes.
+3.  **Pick Blocks.** Choose a block palette, or switch individual blocks on and off under "Choose which blocks to use". Transparent pixels become air, which is handy for cut-out shapes.
 4.  **Pick an Angle.** Choose a preset (flat, upright facing any direction, ceiling) or set your own angle:
     - **Tilt back**: leans the top of the picture away from you. 90° is lying flat with the top pointing north.
     - **Turn**: rotates around the vertical axis, like Minecraft yaw (90° = facing west).
     - **Spin**: rotates the picture within its own plane.
     - **Fill gaps** makes angled pictures thicker so you can't see through them, at the cost of more blocks.
-5.  **Generate Litematic**, then download it. Put the file in `.minecraft/schematics` and load it with Litematica. A materials list is shown under the button.
+5.  **Swap Blocks (optional).** "Blocks in this schematic" lists every block used with how many you need. Swap any of them for another block, including one you type in yourself (the closest colours are suggested first), or choose "Don't use" to rematch those pixels to your other blocks.
+6.  **Generate Litematic**, then download it. Put the file in `.minecraft/schematics` and load it with Litematica.
 
 ## Running Locally
 

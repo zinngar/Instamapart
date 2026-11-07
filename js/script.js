@@ -20,6 +20,7 @@ const stats = $('stats');
 const downloadLink = $('download');
 
 const MAX_SIZE = 512;
+const SUGGESTION_COUNT = 3;
 
 let originalImage = null;
 let imageName = 'mapart';
@@ -87,13 +88,120 @@ function setAngles(angles) {
     }
 }
 
-function activePalette() {
-    switch (blockPalette.value) {
-        case 'wool': return woolColorToBlockId;
-        case 'concrete': return concreteColorToBlockId;
-        case 'no_expensive': return noExpensiveColorToBlockId;
-        default: return colorToBlockId;
+const palettePresets = {
+    all: colorToBlockId,
+    wool: woolColorToBlockId,
+    concrete: concreteColorToBlockId,
+    no_expensive: noExpensiveColorToBlockId
+};
+
+const allBlocks = [...Object.entries(colorToBlockId), ...Object.entries(woolColorToBlockId)]
+    .map(([rgb, id]) => ({ id, color: rgb.split(',').map(Number) }));
+const blockById = new Map(allBlocks.map((block) => [block.id, block]));
+
+// Blocks the image may be matched to.
+let enabledBlocks = new Set(Object.values(colorToBlockId));
+// Block the image matched -> block to place instead.
+const swaps = new Map();
+
+const shortName = (id) => id.replace('minecraft:', '');
+
+// --- Block picker -----------------------------------------------------------
+
+function renderBlockPicker() {
+    const grid = $('blockGrid');
+    for (const block of allBlocks) {
+        const label = document.createElement('label');
+        const box = document.createElement('input');
+        box.type = 'checkbox';
+        box.dataset.block = block.id;
+        box.addEventListener('change', () => {
+            if (box.checked) enabledBlocks.add(block.id);
+            else enabledBlocks.delete(block.id);
+            blockPalette.value = 'custom';
+            syncBlockPicker();
+            schedulePreview();
+        });
+        label.append(box, makeSwatch(block.color), shortName(block.id).replaceAll('_', ' '));
+        grid.appendChild(label);
     }
+    syncBlockPicker();
+}
+
+// Every other block, closest in colour first.
+function blocksByCloseness(source) {
+    const [r, g, b] = blockById.get(source).color;
+    const distance = ({ color }) => (r - color[0]) ** 2 + (g - color[1]) ** 2 + (b - color[2]) ** 2;
+    return allBlocks
+        .filter((block) => block.id !== source)
+        .sort((x, y) => distance(x) - distance(y));
+}
+
+// All the swap boxes share one list, so it is filled in for whichever box is in use.
+function fillSwapOptions(source) {
+    $('blockOptions').replaceChildren(...blocksByCloseness(source).map((block) => {
+        const option = document.createElement('option');
+        option.value = shortName(block.id);
+        return option;
+    }));
+}
+
+function syncBlockPicker() {
+    for (const box of $('blockGrid').querySelectorAll('input')) {
+        box.checked = enabledBlocks.has(box.dataset.block);
+    }
+    $('enabledCount').textContent = `${enabledBlocks.size} of ${allBlocks.length} on`;
+}
+
+function makeSwatch(color) {
+    const swatch = document.createElement('span');
+    swatch.className = 'swatch';
+    if (color) swatch.style.backgroundColor = `rgb(${color.join(',')})`;
+    return swatch;
+}
+
+blockPalette.addEventListener('change', () => {
+    const preset = palettePresets[blockPalette.value];
+    if (preset) enabledBlocks = new Set(Object.values(preset));
+    syncBlockPicker();
+    schedulePreview();
+});
+
+function setAllBlocks(on) {
+    enabledBlocks = new Set(on ? allBlocks.map((block) => block.id) : []);
+    blockPalette.value = 'custom';
+    syncBlockPicker();
+    schedulePreview();
+}
+$('enableAll').addEventListener('click', () => setAllBlocks(true));
+$('enableNone').addEventListener('click', () => setAllBlocks(false));
+
+$('clearSwaps').addEventListener('click', () => {
+    swaps.clear();
+    schedulePreview();
+});
+
+// Turns what was typed into a full block id, or null if it can't be one.
+function parseBlockId(text) {
+    const cleaned = text.trim().toLowerCase().replace(/\s+/g, '_');
+    const id = cleaned.includes(':') ? cleaned : `minecraft:${cleaned}`;
+    return /^[a-z0-9_.-]+:[a-z0-9_./-]+$/.test(id) && !id.endsWith(':air') ? id : null;
+}
+
+function setSwap(source, text) {
+    if (!text.trim()) {
+        swaps.delete(source);
+    } else {
+        const target = parseBlockId(text);
+        if (!target) {
+            alert(`"${text}" isn't a block name that can be placed. Try something like smooth_stone.`);
+        } else if (target === source) {
+            swaps.delete(source);
+        } else {
+            swaps.set(source, target);
+        }
+    }
+    schedulePreview();
 }
 
 // --- Inputs -----------------------------------------------------------------
@@ -172,7 +280,7 @@ for (const n of angleNames) {
     });
 }
 
-for (const el of [blockPalette, transparent, solid]) {
+for (const el of [transparent, solid]) {
     el.addEventListener('change', schedulePreview);
 }
 
@@ -197,10 +305,20 @@ function updatePreview() {
     ctx.clearRect(0, 0, width, height);
     ctx.drawImage(originalImage, 0, 0, width, height);
 
+    const choices = allBlocks.filter((block) => enabledBlocks.has(block.id));
+    if (!choices.length) {
+        current = null;
+        stats.textContent = 'No blocks are switched on. Choose at least one block to use.';
+        $('materialsBox').style.display = 'none';
+        render3d();
+        return;
+    }
+
     const imageData = ctx.getImageData(0, 0, width, height);
     const data = imageData.data;
-    const paletteMap = activePalette();
-    const colors = Object.keys(paletteMap).map((c) => c.split(',').map(Number));
+    const colors = choices.map((block) => block.color);
+    // blockNames holds the blocks the image matched; blockColors how each one
+    // looks once any swap is applied (a typed-in block keeps the matched colour).
     const blockNames = [];
     const blockColors = [];
     const indexOfColor = new Map();
@@ -223,11 +341,12 @@ function updatePreview() {
         if (idx === undefined) {
             idx = blockNames.length;
             indexOfColor.set(c, idx);
-            blockNames.push(paletteMap[colors[c].join(',')]);
-            blockColors.push(colors[c]);
+            const name = choices[c].id;
+            blockNames.push(name);
+            blockColors.push(blockById.get(swaps.get(name))?.color ?? colors[c]);
         }
         pixels[p] = idx;
-        [data[i], data[i + 1], data[i + 2]] = colors[c];
+        [data[i], data[i + 1], data[i + 2]] = blockColors[idx];
         data[i + 3] = 255;
     }
     ctx.putImageData(imageData, 0, 0);
@@ -237,7 +356,7 @@ function updatePreview() {
 
     const count = shape.hits.length / 4;
     stats.textContent = count
-        ? `${shape.sizeX} × ${shape.sizeY} × ${shape.sizeZ} (W × H × L) · ${count.toLocaleString()} blocks · ${blockNames.length} block types`
+        ? `${shape.sizeX} × ${shape.sizeY} × ${shape.sizeZ} (W × H × L) · ${count.toLocaleString()} blocks · ${finalBlocks().names.length} block types`
         : 'Nothing to build — the picture is fully transparent.';
     renderMaterials();
     render3d();
@@ -268,14 +387,66 @@ function renderMaterials() {
         .filter(([, n]) => n > 0)
         .sort((a, b) => b[1] - a[1])
         .forEach(([name, n]) => {
-            const li = document.createElement('li');
+            const row = document.createElement('div');
+            row.className = 'block-row';
+
+            const label = document.createElement('span');
+            label.append(makeSwatch(blockById.get(name).color), shortName(name));
+
             const stacks = Math.floor(n / 64);
             const rest = n % 64;
-            li.textContent = `${name.replace('minecraft:', '')}: ${n.toLocaleString()}` +
+            const amount = document.createElement('span');
+            amount.textContent = n.toLocaleString() +
                 (stacks ? ` (${stacks} stack${stacks > 1 ? 's' : ''}${rest ? ` + ${rest}` : ''})` : '');
-            list.appendChild(li);
+
+            const swap = document.createElement('input');
+            swap.setAttribute('list', 'blockOptions');
+            swap.placeholder = 'Swap to...';
+            swap.setAttribute('aria-label', `Swap ${shortName(name)} to`);
+            swap.value = swaps.has(name) ? shortName(swaps.get(name)) : '';
+            swap.addEventListener('focus', () => fillSwapOptions(name));
+            swap.addEventListener('change', () => setSwap(name, swap.value));
+
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'small';
+            remove.textContent = "Don't use";
+            remove.addEventListener('click', () => {
+                enabledBlocks.delete(name);
+                blockPalette.value = 'custom';
+                syncBlockPicker();
+                schedulePreview();
+            });
+
+            const closest = document.createElement('div');
+            closest.className = 'closest';
+            closest.append('Closest:');
+            for (const block of blocksByCloseness(name).slice(0, SUGGESTION_COUNT)) {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'small';
+                chip.append(makeSwatch(block.color), shortName(block.id));
+                chip.addEventListener('click', () => setSwap(name, shortName(block.id)));
+                closest.appendChild(chip);
+            }
+
+            row.append(label, amount, swap, remove, closest);
+            list.appendChild(row);
         });
     $('materialsBox').style.display = shape.hits.length ? 'block' : 'none';
+    $('clearSwaps').style.display = blockNames.some((name) => swaps.has(name)) ? 'inline-block' : 'none';
+}
+
+// Blocks to actually place, with swaps applied. Two blocks swapped to the same
+// target share one palette entry; remap[i] gives the entry for blockNames[i].
+function finalBlocks() {
+    const names = [];
+    const remap = current.blockNames.map((name) => {
+        const target = swaps.get(name) ?? name;
+        if (!names.includes(target)) names.push(target);
+        return names.indexOf(target);
+    });
+    return { names, remap };
 }
 
 // --- 3D preview ---------------------------------------------------------------
@@ -377,13 +548,15 @@ $('generate').addEventListener('click', async () => {
     }
     clearTimeout(previewTimer);
     updatePreview();
-    if (!current.shape.hits.length) {
+    if (!current || !current.shape.hits.length) {
         return;
     }
 
-    const { shape, blockNames } = current;
+    const { names, remap } = finalBlocks();
+    const hits = current.shape.hits.slice();
+    for (let i = 3; i < hits.length; i += 4) hits[i] = remap[hits[i]];
     const angles = getAngles();
-    const bytes = await buildLitematic(shape, blockNames, {
+    const bytes = await buildLitematic({ ...current.shape, hits }, names, {
         name: imageName,
         description: `Made with Instamapart. Tilt ${angles.tilt}°, turn ${angles.turn}°, spin ${angles.spin}°.`
     });
@@ -394,4 +567,5 @@ $('generate').addEventListener('click', async () => {
     downloadLink.style.display = 'inline-block';
 });
 
+renderBlockPicker();
 render3d();

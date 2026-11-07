@@ -110,9 +110,80 @@ fieldset {
     color: #333;
 }
 
-#materials {
-    columns: 2;
+#blockPicker {
+    margin-top: 0.5rem;
+}
+
+#blockGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: 0.25rem 0.75rem;
+    max-height: 16rem;
+    overflow-y: auto;
+    margin-top: 0.5rem;
     font-size: 0.9rem;
+}
+
+#blockGrid label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.swatch {
+    display: inline-block;
+    flex: none;
+    width: 0.9rem;
+    height: 0.9rem;
+    margin-right: 0.35rem;
+    border: 1px solid #999;
+    vertical-align: -0.1rem;
+}
+
+#blockGrid .swatch {
+    margin-right: 0;
+}
+
+.hint {
+    color: #555;
+    font-size: 0.85rem;
+}
+
+.block-row {
+    display: grid;
+    grid-template-columns: minmax(10rem, 1.2fr) minmax(8rem, 1fr) minmax(8rem, 1fr) auto;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.2rem 0;
+    font-size: 0.9rem;
+}
+
+.block-row input {
+    min-width: 0;
+}
+
+.closest {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid #eee;
+    color: #555;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 600px) {
+    .block-row {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.small {
+    padding: 0.15rem 0.5rem;
+    font-size: 0.8rem;
+    cursor: pointer;
 }
 
 a.button {
